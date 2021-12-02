@@ -147,7 +147,11 @@ public class BAT extends Plugin {
 	    if(redis != null){
 	      getRedis().destroy();
 	    }
-        modules.unloadModules();
+
+		try {
+			modules.unloadModules();
+		} catch (NullPointerException ignored) {}
+
 		instance = null;
 	}
 
@@ -172,7 +176,7 @@ public class BAT extends Plugin {
                             dbState.done(true, null);
                             return;
 	                    }
-				    }catch(final SQLException handledByDatasourceHandler){}
+				    }catch(final SQLException ignored){}
 				    getLogger().severe("The connection pool (database connection)"
                             + " wasn't able to be launched !");
                     dbState.done(false, null);

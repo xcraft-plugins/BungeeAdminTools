@@ -15,10 +15,10 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-import com.zaxxer.hikari.HikariDataSource;
+import com.mysql.cj.jdbc.MysqlDataSource;
+import com.mysql.cj.jdbc.exceptions.CommunicationsException;
 import net.md_5.bungee.api.ProxyServer;
 
 import org.apache.log4j.BasicConfigurator;
@@ -27,14 +27,13 @@ import org.apache.log4j.varia.NullAppender;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.io.CharStreams;
-import com.mysql.jdbc.exceptions.jdbc4.CommunicationsException;
 
 import fr.Alphart.BAT.BAT;
 import fr.Alphart.BAT.Utils.CallbackUtils.Callback;
 
 public class DataSourceHandler {
 	// Connection informations
-	private HikariDataSource ds;
+	private MysqlDataSource ds;
 	private String username;
 	private String password;
 	private String database;
@@ -64,22 +63,23 @@ public class DataSourceHandler {
 
 		BAT.getInstance().getLogger().config("Initialization of HikariCP in progress ...");
 		BasicConfigurator.configure(new NullAppender());
-		ds = new HikariDataSource();
-		ds.setJdbcUrl("jdbc:mysql://" + this.host + ":" + this.port + "/" + this.database + 
+		ds = new MysqlDataSource();
+		ds.setUrl("jdbc:mysql://" + this.host + ":" + this.port + "/" + this.database +
 				"?useLegacyDatetimeCode=false&serverTimezone=" + TimeZone.getDefault().getID());
-		ds.setUsername(this.username);
+		ds.setUser(this.username);
 		ds.setPassword(this.password);
-		ds.addDataSourceProperty("cachePrepStmts", "true");
-		ds.setMaximumPoolSize(8);
+		//ds.addDataSourceProperty("cachePrepStmts", "true");
+		//ds.setMaximumPoolSize(8);
 		try {
 			final Connection conn = ds.getConnection();
 		    int intOffset = Calendar.getInstance().getTimeZone().getOffset(Calendar.getInstance().getTimeInMillis()) / 1000;
 		    String offset = String.format("%02d:%02d", Math.abs(intOffset / 3600), Math.abs((intOffset / 60) % 60));
 		    offset = (intOffset >= 0 ? "+" : "-") + offset;
-			conn.createStatement().executeQuery("SET time_zone='" + offset + "';");
+			conn.createStatement().executeUpdate("SET time_zone='" + offset + "';");
 			conn.close();
 			BAT.getInstance().getLogger().config("BoneCP is loaded !");
 		} catch (final SQLException e) {
+			e.printStackTrace();
 			BAT.getInstance().getLogger().severe("BAT encounters a problem during the initialization of the database connection."
 					+ " Please check your logins and database configuration.");
 			if(e.getCause() instanceof CommunicationsException){
@@ -153,7 +153,6 @@ public class DataSourceHandler {
 
 	/**
 	 * Generate a backup of the BAT data in mysql database.
-	 * @param path
 	 * @param onComplete
 	 * @throws RuntimeException if MySQL is not used or if the creation of the backup file failed
 	 */
